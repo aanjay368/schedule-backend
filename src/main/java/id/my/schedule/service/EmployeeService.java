@@ -1,22 +1,24 @@
 package id.my.schedule.service;
 
-import id.my.schedule.model.CreateEmployeeRequest;
-import id.my.schedule.model.EditEmployeeRequest;
-import id.my.schedule.model.EmployeeResponse;
+import id.my.schedule.entity.User;
+import id.my.schedule.model.employee.CreateEmployeeRequest;
+import id.my.schedule.model.employee.UpdateEmployeeRequest;
+import id.my.schedule.model.employee.EmployeeResponse;
 
 import java.util.List;
-import java.util.concurrent.Future;
 
 public interface EmployeeService {
 
-    Future<EmployeeResponse> add(CreateEmployeeRequest request);
+    EmployeeResponse create(CreateEmployeeRequest request);
 
-    Future<List<EmployeeResponse>> getEmployeeList();
+    List<EmployeeResponse> getList();
 
+    EmployeeResponse get(String employeeId);
 
-    Future<EmployeeResponse> edit(EditEmployeeRequest request);
+    EmployeeResponse getCurrent(User user);
 
-    Future<EmployeeResponse> delete(String nickname);
+    EmployeeResponse update(UpdateEmployeeRequest request);
 
-    Future<EmployeeResponse> getById(String id);
- }
+    EmployeeResponse delete(String employeeId);
+
+}

@@ -22,6 +22,7 @@ public class StringToLocalDateConverter implements Converter<String, LocalDate> 
         if (source.equalsIgnoreCase("null") || source.equalsIgnoreCase("undefined")) {
             return LocalDate.now(ZoneId.of("Asia/Makassar"));
         }
+
         try {
             return LocalDate.parse(source, DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.of("id", "ID")));
         } catch (DateTimeParseException e) {

@@ -1,7 +1,9 @@
 package id.my.schedule.controller;
 
-import id.my.schedule.entity.EmployeeDivision;
 import id.my.schedule.model.*;
+import id.my.schedule.model.schedule.ScheduleResponse;
+import id.my.schedule.model.schedule.SearchScheduleResquest;
+import id.my.schedule.model.schedule.UploadScheduleRequest;
 import id.my.schedule.service.ScheduleService;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -11,8 +13,6 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
-import java.time.Month;
 import java.util.List;
 
 @Slf4j
@@ -27,48 +27,55 @@ public class ScheduleController {
             path = "/api/v1/schedules",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
-    public WebResponse<String> uploadPorterSchedule(@RequestPart(name = "file")MultipartFile file, @RequestParam(value = "division") EmployeeDivision division){
+    public WebResponse<String> upload(@RequestParam(name = "file") MultipartFile uploadFile,
+                                              @RequestParam(value = "positionId") Integer positionId,
+                                              @RequestParam(value = "divisionId") Integer divisionId,
+                                              @RequestParam(value = "month") Integer month,
+                                              @RequestParam(value = "year") Integer year) {
         UploadScheduleRequest request = UploadScheduleRequest.builder()
-                .filename(file.getOriginalFilename())
-                .inputStream(file.getInputStream())
-                .division(division)
+                .month(month)
+                .year(year)
+                .uploadFile(uploadFile)
+                .divisionId(divisionId)
+                .positionId(positionId)
                 .build();
-        String response = scheduleService.upload(request).get();
+
+        String response = scheduleService.upload(request);
         return WebResponse.<String>builder().status(HttpStatus.OK.value()).data(response).build();
     }
 
-    @SneakyThrows
     @GetMapping(
-            path = "/api/v1/schedules/monthly",
+            path = "/api/v1/schedules",
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public WebResponse<List<MonthlyScheduleResponse>> getAicMonthlySchedule(
-            @RequestParam(name = "month") Month month,
-            @RequestParam(name = "division") EmployeeDivision division,
+    public WebResponse<List<ScheduleResponse>> search(
+            @RequestParam(name = "date", required = false) Integer date,
+            @RequestParam(name = "year") Integer year,
+            @RequestParam(name = "month") Integer month,
+            @RequestParam(name = "divisionId"   ) Integer divisionId,
+            @RequestParam(name = "positionId"   ) Integer positionId,
             @RequestParam(name = "employeeId", required = false) String employeeId
-    ){
-
-        MonthlyScheduleResquest request = MonthlyScheduleResquest.builder()
-                .month(month.getValue())
-                .division(division)
+    ) {
+        SearchScheduleResquest request = SearchScheduleResquest.builder()
+                .date(date)
+                .month(month)
+                .year(year)
+                .divisionId(divisionId)
+                .positionId(positionId)
                 .employeeId(employeeId).build();
-        log.info("request : {}", request );
-        List<MonthlyScheduleResponse> responses = scheduleService.getMonthlySchedule(request).get();
-        return WebResponse.<List<MonthlyScheduleResponse>>builder().data(responses).build();
+
+        List<ScheduleResponse> responses = scheduleService.search(request);
+        return WebResponse.<List<ScheduleResponse>>builder().data(responses).build();
     }
 
-    @SneakyThrows
     @GetMapping(
-            path = "/api/v1/schedules/daily",
+            path = "/api/v1/schedules/{scheduleId}",
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public WebResponse<List<DailyScheduleResponse>> getDailySchedule(
-            @RequestParam(name = "date") LocalDate date,
-            @RequestParam(name = "division") EmployeeDivision division
-    ){
-        DailyScheduleRequest request = DailyScheduleRequest.builder().date(date).division(division).build();
-        List<DailyScheduleResponse> responses = scheduleService.getDailySchedule(request).get();
-        return WebResponse.<List<DailyScheduleResponse>>builder().data(responses).build();
+    public WebResponse<ScheduleResponse> get(@PathVariable("scheduleId") String scheduleId) {
+        ScheduleResponse response = scheduleService.getDetails(scheduleId);
+
+        return WebResponse.<ScheduleResponse>builder().data(response).build();
     }
 
 }

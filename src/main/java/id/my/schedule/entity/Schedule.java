@@ -1,10 +1,7 @@
 package id.my.schedule.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -17,7 +14,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "schedules")
-@EntityListeners(AuditingEntityListener.class)
+@ToString
 public class Schedule {
 
     @Id
@@ -33,13 +30,25 @@ public class Schedule {
     )
     private Employee employee;
 
-    @Enumerated(EnumType.STRING)
+    @ManyToOne
+    @JoinColumn(
+            name = "shift_id",
+            referencedColumnName = "id"
+    )
     private Shift shift;
 
-    @Enumerated(EnumType.STRING)
-    private EmployeeDivision division;
+    @ManyToOne
+    @JoinColumn(
+            name = "division_id",
+            referencedColumnName = "id"
+    )
+    private Division division;
 
-    @CreatedDate
-    @Column(name = "created_at")
-    private Instant createdAt;
+    @ManyToOne
+    @JoinColumn(
+            name = "position_id",
+            referencedColumnName = "id"
+    )
+    private Position position;
+
 }

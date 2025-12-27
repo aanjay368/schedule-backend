@@ -1,17 +1,16 @@
 package id.my.schedule.service;
 
-import id.my.schedule.model.LoginRequest;
-import id.my.schedule.model.UserResponse;
-
-import java.util.concurrent.Future;
+import id.my.schedule.model.auth.LoginRequest;
+import id.my.schedule.model.auth.LoginResponse;
+import id.my.schedule.model.user.UserResponse;
 
 public interface AuthService {
 
-    Future<String> login(LoginRequest request);
+    LoginResponse login(LoginRequest request);
 
-    Future<Boolean> validateToken(String authToken);
+    Boolean validateToken(String authToken);
 
-    Future<UserResponse> generateUser(String token);
+    UserResponse generateUser(String token);
 
-    Future<Boolean> checkDeveloperRole(UserResponse userResponse);
+    boolean validateDeveloperRole(String token);
 }

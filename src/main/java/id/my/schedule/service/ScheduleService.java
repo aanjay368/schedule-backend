@@ -1,16 +1,17 @@
 package id.my.schedule.service;
 
-import id.my.schedule.model.*;
+import id.my.schedule.model.schedule.ScheduleResponse;
+import id.my.schedule.model.schedule.SearchScheduleResquest;
+import id.my.schedule.model.schedule.UploadScheduleRequest;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.Future;
 
 public interface ScheduleService {
 
-    Future<String> upload(UploadScheduleRequest request) throws IOException;
+    String upload(UploadScheduleRequest request) ;
 
-    Future<List<MonthlyScheduleResponse>> getMonthlySchedule(MonthlyScheduleResquest request);
+    List<ScheduleResponse> search(SearchScheduleResquest request);
 
-    Future<List<DailyScheduleResponse>> getDailySchedule(DailyScheduleRequest request);
+    ScheduleResponse getDetails(String scheduleId);
+
 }

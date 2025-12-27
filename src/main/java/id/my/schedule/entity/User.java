@@ -1,10 +1,7 @@
 package id.my.schedule.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
@@ -16,12 +13,16 @@ import lombok.Setter;
 public class User {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    private String nickname;
+    private String username;
 
     private String password;
 
     @Enumerated(EnumType.STRING)
-    private UserRole role;
+    private UserTheme theme;
+
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    private Employee employee;
 }

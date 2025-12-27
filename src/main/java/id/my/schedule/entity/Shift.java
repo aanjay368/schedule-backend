@@ -1,35 +1,55 @@
 package id.my.schedule.entity;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-public enum Shift {
+import java.time.LocalTime;
+import java.util.List;
 
-    P,
-    O,
-    S,
-    S1,
-    S2,
-    L;
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@Entity
+@Table(name = "shifts")
+public class Shift {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
 
-    public static Shift safeValueOf(String value) {
+    private String name;
 
-        if (value.replace(" ", "").equalsIgnoreCase("P")) {
-            return Shift.P;
-        } else if (value.replace(" ", "").equalsIgnoreCase("O")) {
-            return Shift.O;
-        } else if (value.replace(" ", "").equalsIgnoreCase("S")) {
-            return Shift.S;
-        } else if (value.replace(" ", "").equalsIgnoreCase("S1")) {
-            return Shift.S1;
-        } else if (value.replace(" ", "").equalsIgnoreCase("S2")) {
-            return Shift.S2;
-        } else if (value.replace(" ", "").equalsIgnoreCase("L")) {
-            return Shift.L;
-        }
+    private String label;
 
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Can't found shift with value " + value);
-    }
+    private LocalTime start;
 
+    private LocalTime end;
+
+    @ManyToOne
+    @JoinColumn(
+            name = "color_id",
+            referencedColumnName = "id"
+    )
+    private Color color;
+
+    @ManyToOne
+    @JoinColumn(
+            name = "division_id",
+            referencedColumnName = "id"
+    )
+    private Division division;
+
+    @ManyToOne
+    @JoinColumn(
+            name = "position_id",
+            referencedColumnName = "id"
+    )
+    private Position position;
+
+    @OneToMany(mappedBy = "shift")
+    private List<Schedule> schedules;
 }

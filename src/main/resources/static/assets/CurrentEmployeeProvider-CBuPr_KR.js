@@ -1,0 +1,1 @@
+import{r as e,j as u}from"./index-CJ61yhsd.js";import{c as m}from"./employeeService-1YOqjz7J.js";const t=e.createContext({}),a=()=>e.useContext(t);function C({children:r}){const[o,n]=e.useState({});return e.useEffect(()=>{m().then(s=>{n(s)})},[]),u.jsx(t.Provider,{value:o,children:r})}export{C,a as u};

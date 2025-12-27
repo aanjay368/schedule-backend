@@ -1,6 +1,6 @@
 package id.my.schedule.interceptor;
 
-import id.my.schedule.model.UserResponse;
+import id.my.schedule.model.user.UserResponse;
 import id.my.schedule.service.AuthService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,7 +29,7 @@ public class UserInterceptor implements HandlerInterceptor {
 
         // 2. Kalau tidak ada, coba ambil dari Cookie (untuk web)
         if (token == null && request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
+             for (Cookie cookie : request.getCookies()) {
                 if ("session".equals(cookie.getName())) {
                     token = cookie.getValue();
                     break;
@@ -37,16 +37,12 @@ public class UserInterceptor implements HandlerInterceptor {
             }
         }
 
-
         // 3. Validasi token
-        if (token != null && authService.validateToken(token).get()) {
-            UserResponse userResponse = authService.generateUser(token).get();
+        if (token != null && authService.validateToken(token)) {
+            UserResponse userResponse = authService.generateUser(token);
             request.setAttribute("user", userResponse);
             return true;
         }
-
-        // 4. Gagal → tolak request
-        response.sendRedirect("/");
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized: Invalid or missing token");
     }
 }

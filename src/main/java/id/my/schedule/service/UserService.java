@@ -1,14 +1,13 @@
 package id.my.schedule.service;
 
 import id.my.schedule.entity.User;
-import id.my.schedule.model.UserResponse;
-
-import java.util.concurrent.Future;
+import id.my.schedule.model.user.UpdateUserRequest;
+import id.my.schedule.model.user.UserResponse;
 
 public interface UserService {
 
-    Future<UserResponse> getCurrent(User user);
+    UserResponse getCurrent(User user);
 
-
+    UserResponse update(User user, UpdateUserRequest request);
 
 }

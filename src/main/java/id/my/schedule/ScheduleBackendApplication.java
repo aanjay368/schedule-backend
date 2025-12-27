@@ -23,19 +23,5 @@ public class ScheduleBackendApplication {
 		SpringApplication.run(ScheduleBackendApplication.class, args);
 	}
 
-	@Bean
-	public Executor taskExecutor(){
-		return  new VirtualThreadTaskExecutor();
-	}
 
-	@Bean
-	public DateTimeFormatter dateTimeFormatter(){
-		return DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.of("id", "ID"));
-	}
-
-	@Bean
-	public InMemoryHttpExchangeRepository inMemoryHttpExchangeRepository(){
-
-		return new InMemoryHttpExchangeRepository();
-	}
 }

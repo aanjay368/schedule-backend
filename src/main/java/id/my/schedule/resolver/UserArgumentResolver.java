@@ -1,7 +1,7 @@
 package id.my.schedule.resolver;
 
 import id.my.schedule.entity.User;
-import id.my.schedule.model.UserResponse;
+import id.my.schedule.model.user.UserResponse;
 import id.my.schedule.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +29,6 @@ public class UserArgumentResolver implements HandlerMethodArgumentResolver {
     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer, NativeWebRequest webRequest, WebDataBinderFactory binderFactory) throws Exception {
         HttpServletRequest request = (HttpServletRequest) webRequest.getNativeRequest();
         UserResponse userResponse = (UserResponse) request.getAttribute("user");
-
         return userRepository.findById(userResponse.getId()).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized")
         );
