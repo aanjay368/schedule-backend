@@ -1,11 +1,13 @@
 package id.my.schedule.controller;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import id.my.schedule.model.WebResponse;
 import com.fasterxml.jackson.core.JsonParseException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -15,6 +17,10 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestControllerAdvice
@@ -102,4 +108,32 @@ public class CustomErrorController  {
                                 .build()
                 );
     }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<WebResponse<Map<String, List<String>>>> httpMessageNotReadableException(HttpMessageNotReadableException exception) {
+        Map<String, List<String>> errors = new HashMap<>();
+
+        String message = "Format data tidak valid";
+
+        // Cek jika error disebabkan oleh Enum yang salah
+        if (exception.getCause() instanceof InvalidFormatException ifx) {
+            String fieldName = ifx.getPath().get(0).getFieldName();
+            message = "Pilihan tidak tersedia dalam sistem";
+            if (ifx.getTargetType().isEnum()) {
+                errors.put(fieldName, List.of(message));
+            } else if (ifx.getTargetType().equals(LocalDate.class)) {
+                errors.put(fieldName, List.of("Format tanggal tidak valid "));
+            } else {
+                errors.put(fieldName, List.of("Format data tidak sesuai"));
+            }
+        } else {
+            errors.put("general", List.of("Permintaan JSON tidak dapat dibaca"));
+        }
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(WebResponse.<Map<String, List<String>>>builder()
+                        .errors(errors)
+                        .build());
+    }
 }
+

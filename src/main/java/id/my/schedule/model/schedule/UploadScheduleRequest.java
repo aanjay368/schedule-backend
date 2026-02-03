@@ -34,6 +34,7 @@ public class UploadScheduleRequest {
     @NotNull(message = "Bulan tidak boleh kosong.")
     private Integer month;
 
+    @NotNull
     private MultipartFile uploadFile;
 
     // ... Getters dan Setters ...

@@ -2,6 +2,7 @@ package id.my.schedule.controller;
 
 import id.my.schedule.entity.User;
 import id.my.schedule.model.employee.CreateEmployeeRequest;
+import id.my.schedule.model.employee.SearchEmployeeRequest;
 import id.my.schedule.model.employee.UpdateEmployeeRequest;
 import id.my.schedule.model.employee.EmployeeResponse;
 import id.my.schedule.model.WebResponse;
@@ -33,8 +34,20 @@ public class EmployeeController {
             path = "/api/v1/employees",
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public WebResponse<List<EmployeeResponse>> geEmployeeList(){
-        List<EmployeeResponse> response = employeeService.getList();
+    public WebResponse<List<EmployeeResponse>> search(
+            @RequestParam(name = "name", required = false) String name,
+            @RequestParam(name = "divisionId", required = false) Integer divisionId,
+            @RequestParam(name = "positionId", required = false) Integer positionId
+    ){
+
+        SearchEmployeeRequest searchEmployeeRequest = SearchEmployeeRequest.builder()
+                .name(name)
+                .divisionId(divisionId)
+                .posisitionId(positionId)
+                .build();
+
+
+        List<EmployeeResponse> response = employeeService.searchEmployee(searchEmployeeRequest);
         return WebResponse.<List<EmployeeResponse>>builder().status(200).data(response).build();
     }
 

@@ -1,0 +1,1 @@
+import{n as r,r as i,j as a}from"./index-DmJHvUW7.js";async function v(){return await r.get("/api/v1/divisions")}const s=i.createContext([]),c=()=>i.useContext(s);function x({children:t}){const[e,n]=i.useState([]);return i.useEffect(()=>{v().then(({data:o})=>{n(o)})},[]),a.jsx(s.Provider,{value:e,children:t})}export{x as D,c as u};

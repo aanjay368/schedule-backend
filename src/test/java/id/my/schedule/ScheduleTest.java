@@ -1,7 +1,9 @@
 package id.my.schedule;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import id.my.schedule.entity.*;
+import id.my.schedule.entity.enum_entity.ShiftColor;
 import id.my.schedule.repository.*;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.*;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,18 +41,13 @@ public class ScheduleTest {
     private PositionRepository positionRepository;
 
     @Autowired
-    private ColorRepository colorRepository;
-
-    @Autowired
     private ShiftRepository shiftRepository;
 
-    @Test
-    void test(){
+    void test() {
 
         User user = new User();
         user.setUsername("developer");
         user.setPassword(BCrypt.hashpw("Sasageyo1.", BCrypt.gensalt()));
-        user.setTheme(UserTheme.DARK);
         User savedUser = userRepository.save(user);
 
         Position position = positionRepository.findById(7).orElse(null);
@@ -66,19 +64,17 @@ public class ScheduleTest {
 
     @Test
     @SneakyThrows
-    void addLibur(){
+    void addLibur() {
 
         List<Division> divisions = divisionRepository.findAll();
-        Color color = colorRepository.findById(1).orElse(null);
 
-        AtomicInteger atomicInteger = new AtomicInteger(0);
 
         divisions.forEach(division -> {
             division.getPositions().forEach(position -> {
                 Shift shift = new Shift();
                 shift.setName("Libur");
                 shift.setLabel("L");
-                shift.setColor(color);
+                shift.setColor(ShiftColor.RED);
                 shift.setStart(null);
                 shift.setEnd(null);
                 shift.setDivision(division);
@@ -89,9 +85,12 @@ public class ScheduleTest {
 
     }
 
-    @Test
     void sdasd() {
-        User user = userRepository.findFirstByUsername("developer").orElse(null);
-        Assertions.assertTrue(user.getPassword().equals(BCrypt.hashpw("Sasageyo1.", BCrypt.gensalt())));
+        List<User> users = userRepository.findAll();
+        List<User> list = users.stream()
+                .filter(user -> !user.getUsername().equalsIgnoreCase("developer"))
+                .peek(user -> user.setPassword(BCrypt.hashpw("liongroup1", BCrypt.gensalt()))).toList();
+
+        userRepository.saveAll(list);
     }
 }

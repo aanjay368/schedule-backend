@@ -1,7 +1,7 @@
 package id.my.schedule.model.shift;
 
-import id.my.schedule.entity.Color;
 import id.my.schedule.entity.Shift;
+import id.my.schedule.entity.enum_entity.ShiftColor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,7 +22,7 @@ public class ShiftResponse implements Comparable<ShiftResponse>{
 
     private String label;
 
-    private Color color;
+    private ShiftColor color;
 
     private String start;
 

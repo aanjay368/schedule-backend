@@ -1,1 +1,0 @@
-import{j as a}from"./index-CJ61yhsd.js";function o({children:r,className:s=""}){return a.jsx("div",{className:`rounded-xl border-gray-200 bg-white shadow-sm dark:bg-slate-800 ${s}`,children:r})}export{o as C};

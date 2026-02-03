@@ -1,6 +1,5 @@
 package id.my.schedule.controller;
 
-import id.my.schedule.entity.Color;
 import id.my.schedule.model.shift.CreateShiftRequest;
 import id.my.schedule.model.shift.UpdateShiftRequest;
 import id.my.schedule.model.shift.ShiftResponse;
@@ -17,18 +16,6 @@ public class ShiftController {
 
     @Autowired
     private ShiftService shiftService;
-
-    @GetMapping(
-            path = "/api/v1/shifts/colors",
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    public WebResponse<List<Color>> getColors(
-    ){
-
-        List<Color> response = shiftService.getColors();
-
-        return WebResponse.<List<Color>>builder().data(response).build();
-    }
 
     @PostMapping(
             path = "/api/v1/shifts",

@@ -8,6 +8,7 @@ import org.springframework.core.task.VirtualThreadTaskExecutor;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
@@ -17,6 +18,7 @@ import java.util.concurrent.Executor;
 @EnableAsync
 @EnableJpaRepositories
 @EnableJpaAuditing
+@EnableScheduling
 public class ScheduleBackendApplication {
 
 	public static void main(String[] args) {

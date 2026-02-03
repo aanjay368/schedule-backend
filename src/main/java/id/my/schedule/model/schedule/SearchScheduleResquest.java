@@ -16,5 +16,5 @@ public class SearchScheduleResquest {
 
     private Integer positionId;
 
-    private String employeeId;
+    private String ownerId;
 }

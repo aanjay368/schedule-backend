@@ -1,10 +1,8 @@
 package id.my.schedule.entity;
 
+import id.my.schedule.entity.enum_entity.ShiftColor;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalTime;
 import java.util.List;
@@ -13,6 +11,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@EqualsAndHashCode
 @Entity
 @Table(name = "shifts")
 public class Shift {
@@ -29,12 +28,8 @@ public class Shift {
 
     private LocalTime end;
 
-    @ManyToOne
-    @JoinColumn(
-            name = "color_id",
-            referencedColumnName = "id"
-    )
-    private Color color;
+    @Enumerated(EnumType.STRING)
+    private ShiftColor color;
 
     @ManyToOne
     @JoinColumn(

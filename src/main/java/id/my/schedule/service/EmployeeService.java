@@ -2,6 +2,7 @@ package id.my.schedule.service;
 
 import id.my.schedule.entity.User;
 import id.my.schedule.model.employee.CreateEmployeeRequest;
+import id.my.schedule.model.employee.SearchEmployeeRequest;
 import id.my.schedule.model.employee.UpdateEmployeeRequest;
 import id.my.schedule.model.employee.EmployeeResponse;
 
@@ -11,7 +12,7 @@ public interface EmployeeService {
 
     EmployeeResponse create(CreateEmployeeRequest request);
 
-    List<EmployeeResponse> getList();
+    List<EmployeeResponse> searchEmployee(SearchEmployeeRequest request);
 
     EmployeeResponse get(String employeeId);
 

@@ -54,7 +54,7 @@ public class ScheduleController {
             @RequestParam(name = "month") Integer month,
             @RequestParam(name = "divisionId"   ) Integer divisionId,
             @RequestParam(name = "positionId"   ) Integer positionId,
-            @RequestParam(name = "employeeId", required = false) String employeeId
+            @RequestParam(name = "ownerId", required = false) String ownerId
     ) {
         SearchScheduleResquest request = SearchScheduleResquest.builder()
                 .date(date)
@@ -62,7 +62,7 @@ public class ScheduleController {
                 .year(year)
                 .divisionId(divisionId)
                 .positionId(positionId)
-                .employeeId(employeeId).build();
+                .ownerId(ownerId).build();
 
         List<ScheduleResponse> responses = scheduleService.search(request);
         return WebResponse.<List<ScheduleResponse>>builder().data(responses).build();

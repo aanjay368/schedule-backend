@@ -18,4 +18,5 @@ public class WebResponse<T> {
 
     private T errors;
 
+    private PagingResponse paging;
 }

@@ -1,1 +1,0 @@
-import{l as a}from"./index-CJ61yhsd.js";async function s(e){return await a("/api/v1/users",{method:"PATCH",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(e)})}export{s as u};

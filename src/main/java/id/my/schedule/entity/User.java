@@ -20,9 +20,6 @@ public class User {
 
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    private UserTheme theme;
-
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private Employee employee;
 }

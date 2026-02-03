@@ -1,0 +1,7 @@
+import{d,k as p,r as t,j as n,b as m}from"./index-DmJHvUW7.js";import{S as u}from"./SettingDetailLayout-BQG_m5lP.js";import"./InfoTip-DnVIo9rh.js";import"./info-DpPN6dKV.js";/**
+ * @license lucide-react v0.536.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const g=[["path",{d:"M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528",key:"1jaruq"}]],h=d("flag",g),x=()=>{const{showToast:o}=p(),[r,s]=t.useState({name:"",description:""}),i=[{name:"name",label:"Nama Laporan",type:"text",placeholder:"Contoh: Error pada schedule"},{name:"description",label:"Deskripsi Laporan",type:"textarea",placeholder:`Contoh: Saya mengalami error pada saat mencari schedule di tanggal 12 Februari 2026.
+Schedule yang saya dapatkan tidak sesuai dengan yang di berikan oleh Admin`}],l=t.useCallback(a=>s(e=>({...e,[a.target.name]:a.target.value})),[r]),c=t.useCallback(async a=>{try{o("Username berhasil diperbarui")}catch(e){throw e}},[]);return n.jsx(u,{title:"Laporan",icon:h,iconColorClass:"text-red-600",iconBgClass:"bg-red-100 dark:bg-red-900/30",subtitle:"Buat Laporan",description:"Buat Laporan ketika kamu mengalami kendala. Laporan akan di kirim ke pihak pengembang",children:n.jsx(m,{fields:i,buttonName:"Kirim",onChange:l,formData:r,onSubmit:c})})};export{x as default};

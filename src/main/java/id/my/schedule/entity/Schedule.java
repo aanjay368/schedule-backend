@@ -2,19 +2,25 @@ package id.my.schedule.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SoftDelete;
+import org.hibernate.annotations.SoftDeleteType;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "schedules")
 @ToString
+@Table(name = "schedules")
 public class Schedule {
 
     @Id
@@ -25,10 +31,17 @@ public class Schedule {
 
     @ManyToOne
     @JoinColumn(
-            name = "employee_id",
-            columnDefinition = "nickname"
+            name = "owner_id",
+            columnDefinition = "id"
     )
-    private Employee employee;
+    private Employee owner;
+
+    @ManyToOne
+    @JoinColumn(
+            name = "filler_id",
+            columnDefinition = "id"
+    )
+    private Employee filler;
 
     @ManyToOne
     @JoinColumn(
@@ -51,4 +64,25 @@ public class Schedule {
     )
     private Position position;
 
+    @OneToMany(
+            mappedBy = "schedule",
+            cascade = CascadeType.ALL
+    )
+    private List<ScheduleHistory> histories;
+
+    @OneToMany(mappedBy = "senderSchedule")
+    private List<Submission> asSenderSubmissions;
+
+    @OneToMany(mappedBy = "receiverSchedule")
+    private List<Submission> asReceiverSubmissions;
+
+    @Column(name = "is_deleted")
+    private Boolean isDeleted;
+
+    public void addHistory(String note) {
+        ScheduleHistory history = new ScheduleHistory();
+        history.setSchedule(this);
+        history.setNote(note);
+        this.histories.add(history);
+    }
 }

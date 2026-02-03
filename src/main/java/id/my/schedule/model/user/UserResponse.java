@@ -27,7 +27,6 @@ public class UserResponse {
         return UserResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
-                .theme(user.getTheme().name().toLowerCase())
                 .division(
                         DivisionResponse.toDivisionResponse(user.getEmployee().getDivision())
                 )

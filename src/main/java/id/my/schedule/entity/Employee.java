@@ -1,5 +1,6 @@
 package id.my.schedule.entity;
 
+import id.my.schedule.entity.enum_entity.EmployeeStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -14,6 +15,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@EqualsAndHashCode
 @Table(name = "employees")
 @EntityListeners(AuditingEntityListener.class)
 public class Employee{
@@ -56,9 +58,9 @@ public class Employee{
     private Instant createdAt;
 
 
-    @OneToMany(mappedBy = "employee")
+    @OneToMany(mappedBy = "owner")
     private List<Schedule> schedules;
 
-    @OneToMany(mappedBy = "employee")
-    private List<FullJob> fullJobs;
+    @Enumerated(EnumType.STRING)
+    private EmployeeStatus status;
 }
