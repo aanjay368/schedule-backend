@@ -43,7 +43,7 @@ public class BackupHistoryServiceImpl implements BackupHistoryService {
     @Autowired
     private SubmissionRepository submissionRepository;
 
-    @Scheduled(cron = "0 57 11 * * *")
+    @Scheduled(cron = "0 14 23 * * *", zone = "Asia/Makassar")
     @Transactional
     public void processPendingBackupHistories() {
 

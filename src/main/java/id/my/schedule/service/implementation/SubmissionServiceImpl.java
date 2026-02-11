@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -174,10 +173,6 @@ public class SubmissionServiceImpl implements SubmissionService {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Permintaan sudah tidak dapat dibatalkan");
     }
 
-    // ==========================================
-    // TYPE-SPECIFIC HANDLERS
-    // ==========================================
-
     private SubmissionResponse handleShiftSwap(Employee sender, CreateSubmissionRequest request) {
         Employee receiver = fetchEmployee(request.getReceiverId());
         Schedule receiverSchedule = fetchSchedule(receiver, request.getDate(), false);
@@ -200,10 +195,6 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         return saveSubmission(request, sender, receiver, senderSchedule, null);
     }
-
-    // ==========================================
-    // CORE LOGIC & BUSINESS PROCESSORS
-    // ==========================================
 
     @Transactional
     public void applyScheduleChange(Submission sub) {
@@ -453,10 +444,6 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
     }
 
-    // ==========================================
-    // DATETIME & UTILITY HELPERS
-    // ==========================================
-
     private LocalDateTime getEarliestStartTime(Schedule s, Schedule r) {
         LocalDateTime sStart = convertToSafeDateTime(s);
         if (Objects.isNull(r)) return sStart;
@@ -473,11 +460,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         return LocalDateTime.of(sched.getDate(), startTime);
     }
 
-    // ==========================================
-    // SCHEDULED TASKS
-    // ==========================================
-
-    @Scheduled(cron = "0 45 * * * *")
+    @Scheduled(cron = "0 15,45 * * * *", zone = "Asia/Makassar")
     @Transactional
     public void updateExpiredSubmissions() {
         List<Submission> expiredList = submissionRepository.findAllByStatus(SubmissionStatus.PENDING).stream()
@@ -488,7 +471,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         if (!expiredList.isEmpty()) submissionRepository.saveAll(expiredList);
     }
 
-    @Scheduled(cron = "0 0 18 * * *")
+    @Scheduled(cron = "0 0 18 * * *", zone = "Asia/Makassar")
     @Transactional
     public void automateBackupSubmissions() {
         // 1. Cari semua employee dengan nickname "Kosong"
