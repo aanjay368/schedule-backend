@@ -46,9 +46,8 @@ public class ScheduleServiceImpl implements ScheduleService {
     @Autowired
     private PositionRepository positionRepository;
 
-    // --- 1. PUBLIC METHODS (OVERRIDE) ---
-
     @Override
+    @Transactional
     public String upload(UploadScheduleRequest request) {
         ScheduleMappingContext context = prepareMappingContext(request);
 
@@ -72,32 +71,32 @@ public class ScheduleServiceImpl implements ScheduleService {
     @Override
     @Transactional(readOnly = true)
     public List<ScheduleResponse> search(SearchScheduleResquest request) {
+        Division division = divisionRepository.findById(request.getDivisionId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Data Divisi tidak ditemukan"));
 
-        Division division = divisionRepository.findById(request.getDivisionId()).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Data Divisi tidak di temukan")
-        );
+        Position position = positionRepository.findById(request.getPositionId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Data Posisi tidak ditemukan"));
 
-        Position position = positionRepository.findById(request.getPositionId()).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Data Posisi tidak ditemukan")
-        );
+        // OPTIMASI: Gunakan Range Date daripada fungsi SQL YEAR/MONTH agar Index Database terpakai
+        LocalDate start = LocalDate.of(request.getYear(), request.getMonth(), 1);
+        LocalDate end = YearMonth.of(request.getYear(), request.getMonth()).atEndOfMonth();
 
         List<Schedule> schedules = scheduleRepository.findAll((root, cq, cb) -> {
-            ArrayList<Predicate> predicates = new ArrayList<>();
-            predicates.add(cb.and(cb.equal(cb.function("YEAR", Integer.class, root.get("date")), request.getYear())));
-            predicates.add(cb.and(cb.equal(cb.function("MONTH", Integer.class, root.get("date")), request.getMonth())));
-            predicates.add(cb.and(cb.equal(root.get("division"), division)));
-            predicates.add(cb.and(cb.equal(root.get("position"), position)));
-            predicates.add(cb.and(cb.equal(root.get("isDeleted"), false)));
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.between(root.get("date"), start, end));
+            predicates.add(cb.equal(root.get("division"), division));
+            predicates.add(cb.equal(root.get("position"), position));
+            predicates.add(cb.equal(root.get("isDeleted"), false));
 
             if (Objects.nonNull(request.getDate())) {
-                predicates.add(cb.and(cb.equal(cb.function("DAY", Integer.class, root.get("date")), request.getDate())));
+                predicates.add(cb.equal(cb.function("DAY", Integer.class, root.get("date")), request.getDate()));
             }
 
             if (Objects.nonNull(request.getOwnerId()) && !request.getOwnerId().isBlank()) {
-                predicates.add(cb.and(cb.equal(root.join("owner").get("id"), request.getOwnerId())));
+                predicates.add(cb.equal(root.join("owner").get("id"), request.getOwnerId()));
             }
 
-            return cq.where(predicates.toArray(new Predicate[]{})).getRestriction();
+            return cb.and(predicates.toArray(new Predicate[0]));
         });
 
         if (schedules.isEmpty()) {
@@ -110,43 +109,36 @@ public class ScheduleServiceImpl implements ScheduleService {
                 .toList();
     }
 
-    @Override
-    public ScheduleResponse getDetails(String scheduleId) {
-        Schedule schedule = scheduleRepository.findById(scheduleId).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Data schedule tidak ditemukan")
-        );
-        return ScheduleResponse.toScheduleResponse(schedule);
-    }
-
-    // --- 2. CORE LOGIC (SYNCHRONIZATION) ---
-
     @Transactional
     public void syncSchedules(List<CSVRecord> records, ScheduleMappingContext context) {
         LocalDate startDate = context.getYearMonth().atDay(1);
         LocalDate endDate = context.getYearMonth().atEndOfMonth();
 
+        // 1. Ambil data lama dan buat MAP (O(1) lookup)
         List<Schedule> existingSchedules = scheduleRepository.findByDivisionAndPositionAndDateBetween(
                 context.getDivision(), context.getPosition(), startDate, endDate);
 
+        Map<String, Schedule> existingMap = existingSchedules.stream()
+                .collect(Collectors.toMap(
+                        s -> s.getOwner().getId() + "_" + s.getDate().toString(),
+                        s -> s,
+                        (a, b) -> a));
+
+        // 2. Map CSV ke object
         Set<Schedule> incomingSchedules = mapCsvToSchedules(records, context);
 
-        context.getEmployeeMap().values().forEach(employeeRepository::save);
+        // 3. Simpan perubahaan Employee (jika ada) dalam satu batch
+        employeeRepository.saveAll(context.getEmployeeMap().values());
 
         List<Schedule> schedulesToSave = new ArrayList<>();
         LocalDate now = LocalDate.now(ZoneId.of("Asia/Makassar"));
 
+        // 4. Proses Sync menggunakan Map (Sangat Cepat)
         for (Schedule incoming : incomingSchedules) {
+            String key = incoming.getOwner().getId() + "_" + incoming.getDate().toString();
+            Schedule existing = existingMap.get(key);
 
-            Optional<Schedule> existingOpt = existingSchedules.stream()
-                    .filter(s -> s.getOwner().getId().equals(incoming.getOwner().getId())
-                            && s.getDate().equals(incoming.getDate()))
-                    .findFirst();
-
-            if (existingOpt.isPresent()) {
-                Schedule existing = existingOpt.get();
-
-                validateShiftOverlap(existing, incoming.getShift());
-
+            if (existing != null) {
                 existing.setShift(incoming.getShift());
                 existing.setIsDeleted(false);
                 schedulesToSave.add(existing);
@@ -155,170 +147,129 @@ public class ScheduleServiceImpl implements ScheduleService {
             }
         }
 
+        // 5. Simpan semua dalam satu transaksi batch
         scheduleRepository.saveAll(schedulesToSave);
 
-        existingSchedules.stream()
+        // 6. Soft delete data yang tidak ada di CSV baru
+        List<Schedule> toDeleteOrUpdate = existingSchedules.stream()
                 .filter(s -> s.getDate().isAfter(now))
-                .filter(s -> incomingSchedules.stream()
-                        .noneMatch(inc -> inc.getOwner().getId().equals(s.getOwner().getId())
-                                && inc.getDate().equals(s.getDate())))
-                .forEach(s -> {
+                .filter(s -> !incomingSchedules.contains(s)) // IncomingSchedules harus override equals/hashcode
+                .peek(s -> {
                     if (s.getAsReceiverSubmissions().isEmpty() && s.getAsSenderSubmissions().isEmpty()) {
-                        scheduleRepository.delete(s);
+                        s.setIsDeleted(true); // Sebaiknya soft delete di 0.1 CPU agar tidak memicu re-indexing berat
                     } else {
                         s.setIsDeleted(true);
-                        scheduleRepository.save(s);
                     }
-                });
-    }
+                }).toList();
 
-    private void validateShiftOverlap(Schedule existing, Shift newShift) {
-        boolean hasActiveSwap = !existing.getAsSenderSubmissions().isEmpty() ||
-                !existing.getAsReceiverSubmissions().isEmpty();
+        scheduleRepository.saveAll(toDeleteOrUpdate);
     }
-
-    // --- 3. MAPPING & CONTEXT HELPERS ---
 
     private ScheduleMappingContext prepareMappingContext(UploadScheduleRequest request) {
-
-        Division division = divisionRepository.findById(request.getDivisionId()).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Divisi tidak ditemukan")
-        );
-        Position position = positionRepository.findById(request.getPositionId()).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Posisi tidak ditemukan")
-        );
+        Division division = divisionRepository.findById(request.getDivisionId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Divisi tidak ditemukan"));
+        Position position = positionRepository.findById(request.getPositionId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Posisi tidak ditemukan"));
 
         List<Employee> employees = employeeRepository.findByDivisionAndPositionAndStatus(division, position, EmployeeStatus.ACTIVE);
-
         List<Shift> shifts = shiftRepository.findByDivisionAndPosition(division, position);
 
         Map<String, Employee> employeeMap = employees.stream()
-                .collect(Collectors.toMap(employee ->
-                                employee.getFullname().toUpperCase(),
-                        employee -> employee,
-                        (existing, replacement) -> existing));
+                .collect(Collectors.toMap(e -> e.getFullname().toUpperCase(), e -> e, (a, b) -> a));
 
         Map<String, Shift> shiftMap = shifts.stream()
-                .collect(Collectors.toMap(
-                        Shift::getLabel,
-                        shift -> shift,
-                        (existing, replacement) -> existing));
+                .collect(Collectors.toMap(Shift::getLabel, s -> s, (a, b) -> a));
 
-        return new ScheduleMappingContext(
-                division,
-                position,
-                YearMonth.of(request.getYear(), request.getMonth()),
-                employeeMap,
-                shiftMap
-        );
+        return new ScheduleMappingContext(division, position, YearMonth.of(request.getYear(), request.getMonth()), employeeMap, shiftMap);
     }
 
     private Set<Schedule> mapCsvToSchedules(List<CSVRecord> records, ScheduleMappingContext context) {
+        // Optimasi: Hindari stream berulang kali untuk menghitung total kosong
+        List<CSVRecord> validRecords = records.stream()
+                .filter(r -> r.isMapped("Nama"))
+                .toList();
 
-        List<String> headers = records.get(0).getParser().getHeaderNames();
-        if (!headers.contains("Nama") || !headers.contains("No")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Header 'Nama' atau 'No' tidak ditemukan.");
-        }
+        int totalEmptyInCsv = (int) validRecords.stream()
+                .filter(r -> r.get("Nama") == null || r.get("Nama").trim().isEmpty()).count();
+
+        List<Employee> placeholders = getOrUpdatePlaceholders(totalEmptyInCsv, context);
 
         Set<Schedule> schedules = new HashSet<>();
-        YearMonth yearMonth = context.getYearMonth();
-        int daysInMonth = yearMonth.lengthOfMonth();
+        int daysInMonth = context.getYearMonth().lengthOfMonth();
+        int emptyIdx = 0;
 
-        int emptyRowCount = 0;
-        long totalEmptyInCsv = records.stream()
-                .filter(r -> r.get("Nama") == null || r.get("Nama").trim().isEmpty())
-                .count();
-
-        List<Employee> placeholders = getOrUpdatePlaceholders((int) totalEmptyInCsv, context);
-
-        for (CSVRecord record : records) {
+        for (CSVRecord record : validRecords) {
             String nameInCsv = record.get("Nama");
-            Employee employee;
-
-            if (nameInCsv == null || nameInCsv.trim().isEmpty()) {
-                employee = placeholders.get(emptyRowCount);
-                emptyRowCount++;
-            } else {
-                employee = getEmployeeFromMap(nameInCsv, context.getEmployeeMap());
-            }
+            Employee employee = (nameInCsv == null || nameInCsv.trim().isEmpty())
+                    ? placeholders.get(emptyIdx++)
+                    : getEmployeeFromMap(nameInCsv, context.getEmployeeMap());
 
             updateEmployeeAbsentNumber(employee, record.get("No"));
 
             for (int day = 1; day <= daysInMonth; day++) {
-                String header = String.valueOf(day);
-                if (!headers.contains(header)) continue;
+                String dayStr = String.valueOf(day);
+                if (!record.isMapped(dayStr)) continue;
 
-                Shift shift = getShiftFromMap(record.get(header), context.getShiftMap(), employee.getAbsentNumber(), day);
+                String shiftLabel = record.get(dayStr);
+                Shift shift = getShiftFromMap(shiftLabel, context.getShiftMap(), employee.getAbsentNumber(), day);
 
-                Schedule schedule = new Schedule();
-                schedule.setOwner(employee);
-                schedule.setFiller(employee);
-                schedule.setDivision(context.getDivision());
-                schedule.setPosition(context.getPosition());
-                schedule.setShift(shift);
-                schedule.setDate(yearMonth.atDay(day));
-                schedule.setIsDeleted(false);
-
-                schedules.add(schedule);
+                Schedule s = new Schedule();
+                s.setOwner(employee);
+                s.setFiller(employee);
+                s.setDivision(context.getDivision());
+                s.setPosition(context.getPosition());
+                s.setShift(shift);
+                s.setDate(context.getYearMonth().atDay(day));
+                s.setIsDeleted(false);
+                schedules.add(s);
             }
         }
-
         return schedules;
     }
 
-    // --- 4. SMALL UTILITY METHODS ---
-
     private List<Employee> getOrUpdatePlaceholders(int requiredCount, ScheduleMappingContext context) {
-        List<Employee> existingPlaceholders = employeeRepository
-                .findByDivisionAndPositionAndNickname(
-                        context.getDivision(), context.getPosition(), "Kosong");
+        List<Employee> existing = employeeRepository.findByDivisionAndPositionAndNickname(
+                context.getDivision(), context.getPosition(), "Kosong");
 
-        existingPlaceholders.sort(Comparator.comparing(Employee::getNickname));
-
-        if (existingPlaceholders.size() < requiredCount) {
-            int startSuffix = existingPlaceholders.size() + 1;
-            for (int i = startSuffix; i <= requiredCount; i++) {
-                Employee newPlaceholder = new Employee();
-                newPlaceholder.setFullname("Kosong");
-                newPlaceholder.setNickname("Kosong");
-                newPlaceholder.setDivision(context.getDivision());
-                newPlaceholder.setPosition(context.getPosition());
-                newPlaceholder.setStatus(EmployeeStatus.ACTIVE);
-
-                existingPlaceholders.add(employeeRepository.save(newPlaceholder));
+        if (existing.size() < requiredCount) {
+            List<Employee> newEmployees = new ArrayList<>();
+            for (int i = existing.size() + 1; i <= requiredCount; i++) {
+                Employee e = new Employee();
+                e.setFullname("Kosong " + i); // Unikkan nama agar tidak bentrok di map
+                e.setNickname("Kosong");
+                e.setDivision(context.getDivision());
+                e.setPosition(context.getPosition());
+                e.setStatus(EmployeeStatus.ACTIVE);
+                newEmployees.add(e);
             }
+            existing.addAll(employeeRepository.saveAll(newEmployees)); // Batch save
         }
-
-        return existingPlaceholders;
+        existing.sort(Comparator.comparing(Employee::getFullname));
+        return existing;
     }
 
-    private Employee getEmployeeFromMap(String fullName, Map<String, Employee> employeeMap) {
-        Employee employee = employeeMap.get(fullName);
-        if (employee == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Staf dengan nama '" + fullName + "' tidak ditemukan dalam konteks Divisi/Posisi yang valid."
-            );
-        }
-        return employee;
+    // Utility methods tetap sama namun dipastikan tidak melakukan query DB
+    private Employee getEmployeeFromMap(String fullName, Map<String, Employee> map) {
+        Employee e = map.get(fullName.toUpperCase());
+        if (e == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Staf '" + fullName + "' tidak ditemukan.");
+        return e;
     }
 
-    private Shift getShiftFromMap(String shiftLabel, Map<String, Shift> shiftMap, Integer row, Integer date) {
-        Shift shift = shiftMap.get(shiftLabel);
-        if (shift == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Shift dengan label '" + shiftLabel + "' tidak ditemukan di Divisi yang valid pada baris " + row + " dan tanggal " + date +"."
-            );
-        }
-        return shift;
+    private Shift getShiftFromMap(String label, Map<String, Shift> map, Integer row, Integer day) {
+        Shift s = map.get(label);
+        if (s == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Shift '" + label + "' salah di baris " + row + " tgl " + day);
+        return s;
     }
 
-    private void updateEmployeeAbsentNumber(Employee employee, String noString) {
-        try {
-            employee.setAbsentNumber(Integer.parseInt(noString));
-        } catch (NumberFormatException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kolom 'No' harus berisi angka yang valid.",e);
-        }
+    private void updateEmployeeAbsentNumber(Employee employee, String no) {
+        try { employee.setAbsentNumber(Integer.parseInt(no)); }
+        catch (Exception e) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No absen harus angka"); }
+    }
+
+    @Override
+    public ScheduleResponse getDetails(String scheduleId) {
+        return scheduleRepository.findById(scheduleId)
+                .map(ScheduleResponse::toScheduleResponse)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Data tidak ditemukan"));
     }
 }

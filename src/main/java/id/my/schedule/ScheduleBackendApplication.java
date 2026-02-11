@@ -25,5 +25,4 @@ public class ScheduleBackendApplication {
 		SpringApplication.run(ScheduleBackendApplication.class, args);
 	}
 
-
 }

@@ -1,11 +1,13 @@
 package id.my.schedule.model.division;
 
 import id.my.schedule.entity.Division;
+import id.my.schedule.entity.Position;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Data
@@ -24,7 +26,9 @@ public class DivisionResponse {
         return DivisionResponse.builder()
                 .id(division.getId())
                 .name(division.getName())
-                .positions(division.getPositions().stream().map(PositionResponse::toPositionResponse).toList())
+                .positions(division.getPositions().stream()
+                        .sorted(Comparator.comparing(Position::getId))
+                        .map(PositionResponse::toPositionResponse).toList())
                 .build();
     }
 }
