@@ -46,35 +46,40 @@ public class SubmissionResponse {
     @JsonFormat(
             shape = JsonFormat.Shape.STRING,
             pattern = "EEEE, dd MMMM yyyy : HH.mm",
-            locale = "id"
+            locale = "id",
+            timezone = "Asia/Makassar"
     )
     private LocalDateTime createdAt;
 
     @JsonFormat(
             shape = JsonFormat.Shape.STRING,
             pattern = "EEEE, dd MMMM yyyy : HH.mm",
-            locale = "id"
+            locale = "id",
+            timezone = "Asia/Makassar"
     )
     private LocalDateTime expiredAt;
 
     @JsonFormat(
             shape = JsonFormat.Shape.STRING,
             pattern = "EEEE, dd MMMM yyyy : HH.mm",
-            locale = "id"
+            locale = "id",
+            timezone = "Asia/Makassar"
     )
     private LocalDateTime approvedAt;
 
     @JsonFormat(
             shape = JsonFormat.Shape.STRING,
             pattern = "EEEE, dd MMMM yyyy : HH.mm",
-            locale = "id"
+            locale = "id",
+            timezone = "Asia/Makassar"
     )
     private LocalDateTime cancelledAt;
 
     @JsonFormat(
             shape = JsonFormat.Shape.STRING,
             pattern = "EEEE, dd MMMM yyyy : HH.mm",
-            locale = "id"
+            locale = "id",
+            timezone = "Asia/Makassar"
     )
     private LocalDateTime rejectedAt;
 
